@@ -846,43 +846,46 @@ async function speak(text) {
   isSpeaking = true;
   stopListeningTemp();
   setMicState('speaking');
- 
+
   try {
-    const response = await fetch('/speak', {
+    const response = await fetch('https://api.v7.unrealspeech.com/stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
+      headers: {
+        'Authorization': `Bearer ma0vickzELK9hDxlEB5oF6XJNID7kIHVGqA2Rf8It6jcK8dGX2zd59`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        Text: text,
+        VoiceId: 'Scarlett',
+        Bitrate: '192k',
+        Speed: '0',
+        Pitch: '1',
+        Codec: 'libmp3lame',
+      }),
     });
- 
-    if (!response.ok) {
-      console.error('Speak backend error:', response.status);
-      isSpeaking = false;
-      if (recognitionActive) startListening();
-      return;
-    }
- 
+
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.volume = 1;
- 
+
     audio.onended = () => {
       URL.revokeObjectURL(url);
       isSpeaking = false;
       if (recognitionActive) startListening();
     };
- 
+
     audio.onerror = () => {
       isSpeaking = false;
       if (recognitionActive) startListening();
     };
- 
+
     await audio.play().catch(err => {
       console.error('Audio play error:', err);
       isSpeaking = false;
       if (recognitionActive) startListening();
     });
- 
+
   } catch (err) {
     console.error('Speak error:', err);
     isSpeaking = false;
