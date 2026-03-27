@@ -679,7 +679,7 @@ document.getElementById('core-btn').addEventListener('click', () => {
   overlay.classList.add('open');
   if (messagesEl.children.length === 0) {
     addMessage('axion', 'AXION v4.7.1 online. Sistemas cognitivos inicializados.\n\nOlá. Sou A.X.I.O.N — Autonomous eXpanded Intelligence Operations Node. Meus sistemas estão totalmente operacionais. Como posso auxiliar você?');
-    speak('AXION online. Sistemas operacionais ativos. Aguardando comando.');
+    speak('AXION ONLINE. Sistemas operacionais ativos. Aguardando comando.');
   }
   startListening();
   setTimeout(() => inputEl.focus(), 400);
@@ -959,5 +959,11 @@ inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   if (e.key === 'Escape') closeTerminal();
 });
+
+// Mantém o servidor acordado
+setInterval(() => {
+  fetch('/health').catch(() => {});
+}, 5 * 60 * 1000);
+
 </script>
 </body>
