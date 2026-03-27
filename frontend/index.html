@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>A.X.I.O.N Interface</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+ 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+html, body {
+  width: 100%; height: 100%;
+  background: #020810 !important;
+  -webkit-tap-highlight-color: transparent;
+}
+ 
+body {
+  background-color: #020810 !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  min-height: 100vh;
+}
+ 
+canvas { display: block; }
+ 
+#circuit-canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
+}
+ 
+.scanlines {
+  position: fixed; inset: 0; z-index: 2;
+  background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none;
+}
+ 
+.vignette {
+  position: fixed; inset: 0; z-index: 3;
+  background: radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.92) 100%);
+  pointer-events: none;
+}
+ 
+.scene {
+  position: relative; z-index: 10;
+  animation: camera-zoom 30s ease-in-out infinite alternate;
+  transform-origin: center center;
+  display: flex; justify-content: center; align-items: center;
+}
+ 
+@keyframes camera-zoom {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.055); }
+}
+ 
+.container {
+  position: relative;
+  width: 92vmin; height: 92vmin;
+  max-width: 560px; max-height: 560px;
+  display: flex; justify-content: center; align-items: center;
+}
+ 
+.ambient-glow {
+  position: absolute; width: 88%; height: 88%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,160,255,0.09) 0%, rgba(0,60,180,0.05) 45%, transparent 72%);
+  animation: glow-breathe 6s ease-in-out infinite;
+}
+ 
+@keyframes glow-breathe {
+  0%,100% { opacity:.5; transform:scale(1); }
+  50%      { opacity:1;  transform:scale(1.09); }
+}
+ 
+.ring {
+  position: absolute; border-radius: 50%;
+  transition: all 0.5s ease;
+}
+ 
+.ring-1 {
+  width: 33%; height: 33%;
+  border: 1.5px solid rgba(0,242,255,0.15);
+  border-top: 2px solid #00f2ff;
+  border-right: 1.5px solid rgba(0,242,255,0.45);
+  box-shadow: 0 0 10px rgba(0,242,255,0.12), inset 0 0 10px rgba(0,242,255,0.04);
+  animation: spin-cw 6s linear infinite;
+}
+ 
+.ring-2 {
+  width: 47%; height: 47%;
+  border: 2px dashed rgba(0,242,255,0.22);
+  border-top-color: rgba(0,242,255,0.8);
+  box-shadow: 0 0 14px rgba(0,242,255,0.07);
+  animation: spin-ccw 14s linear infinite;
+}
+ 
+.ring-3 {
+  width: 63%; height: 63%;
+  border: 2px solid transparent;
+  border-top: 2.5px solid rgba(0,242,255,0.7);
+  border-bottom: 2px solid rgba(0,242,255,0.25);
+  border-left: 1px solid rgba(0,242,255,0.08);
+  border-right: 1px solid rgba(0,242,255,0.08);
+  box-shadow: 0 0 20px rgba(0,242,255,0.08);
+  animation: spin-cw 22s linear infinite;
+}
+ 
+.ring-4 {
+  width: 80%; height: 80%;
+  border: 1px solid rgba(0,242,255,0.07);
+  border-left: 1.5px solid rgba(0,242,255,0.42);
+  border-right: 1.5px solid rgba(0,242,255,0.18);
+  animation: spin-ccw 35s linear infinite;
+}
+ 
+body.thinking .ring-1 { animation: spin-cw 1.5s linear infinite; }
+body.thinking .ring-2 { animation: spin-ccw 2.5s linear infinite; border-color: rgba(0,242,255,0.5); border-top-color: #00f2ff; }
+body.thinking .ring-3 { animation: spin-cw 4s linear infinite; border-top-color: rgba(0,242,255,1); }
+body.thinking .ring-4 { animation: spin-ccw 6s linear infinite; border-left-color: rgba(0,242,255,0.7); }
+body.thinking .ambient-glow { animation: glow-breathe 1.5s ease-in-out infinite; }
+body.thinking .core-sphere { animation: sphere-glow-fast 1s ease-in-out infinite; }
+ 
+@keyframes sphere-glow-fast {
+  0%,100% { box-shadow: 0 0 40px rgba(0,210,255,0.7), 0 0 90px rgba(0,140,255,0.4), inset 0 0 50px rgba(0,220,255,0.25); }
+  50%      { box-shadow: 0 0 70px rgba(0,230,255,0.9), 0 0 140px rgba(0,160,255,0.6), inset 0 0 80px rgba(0,240,255,0.35); }
+}
+ 
+@keyframes spin-cw  { from { transform:rotate(0deg); }   to { transform:rotate(360deg); } }
+@keyframes spin-ccw { from { transform:rotate(360deg); } to { transform:rotate(0deg); } }
+ 
+.hud-dot {
+  position: absolute;
+  width: 5px; height: 5px;
+  background: #00f2ff; border-radius: 50%;
+  box-shadow: 0 0 8px #00f2ff, 0 0 16px #00f2ff;
+}
+ 
+#particle-canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 15;
+}
+ 
+.core-wrapper {
+  position: absolute;
+  width: 24%; height: 24%;
+  display: flex; justify-content: center; align-items: center;
+  animation: core-breathe 5s ease-in-out infinite;
+  z-index: 20;
+  cursor: pointer;
+}
+ 
+.core-wrapper:hover .core-sphere {
+  box-shadow: 0 0 60px rgba(0,220,255,0.8), 0 0 120px rgba(0,140,255,0.5), inset 0 0 70px rgba(0,230,255,0.3);
+}
+ 
+.core-wrapper:hover .core-text {
+  text-shadow: 0 0 12px #00f2ff, 0 0 30px rgba(0,242,255,0.9), 0 0 60px rgba(0,200,255,0.6);
+}
+ 
+@keyframes core-breathe {
+  0%,100% { transform:scale(1); }
+  50%      { transform:scale(1.08); }
+}
+ 
+.core-sphere {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, rgba(120,230,255,0.28) 0%, rgba(0,140,255,0.14) 28%, rgba(0,40,120,0.22) 58%, rgba(0,0,18,0.45) 100%);
+  border: 1px solid rgba(0,242,255,0.32);
+  animation: sphere-glow 5s ease-in-out infinite;
+  transition: all 0.5s ease;
+}
+ 
+@keyframes sphere-glow {
+  0%,100% { box-shadow: 0 0 22px rgba(0,180,255,0.35), 0 0 50px rgba(0,100,255,0.18), inset 0 0 30px rgba(0,200,255,0.12); }
+  50%      { box-shadow: 0 0 40px rgba(0,210,255,0.6),  0 0 90px rgba(0,140,255,0.35), inset 0 0 50px rgba(0,220,255,0.22); }
+}
+ 
+.core-sphere::before {
+  content: '';
+  position: absolute; top: 16%; left: 20%;
+  width: 36%; height: 20%;
+  background: radial-gradient(ellipse at center, rgba(210,245,255,0.38) 0%, transparent 80%);
+  border-radius: 50%;
+  filter: blur(3px);
+}
+ 
+.core-text-wrap { position: relative; z-index: 21; text-align: center; }
+ 
+.core-label {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(5px, 1.2vmin, 7px);
+  color: rgba(0,242,255,0.5);
+  letter-spacing: 3px; margin-bottom: 3px;
+}
+ 
+.core-text {
+  display: block;
+  font-family: 'Orbitron', monospace;
+  color: #fff;
+  font-size: clamp(10px, 2.8vmin, 16px);
+  font-weight: 900; letter-spacing: 4px;
+  text-shadow: 0 0 8px #00f2ff, 0 0 20px rgba(0,242,255,0.7), 0 0 40px rgba(0,180,255,0.4);
+  animation: text-flicker 5s ease-in-out infinite;
+  transition: text-shadow 0.3s ease;
+}
+ 
+@keyframes text-flicker {
+  0%,100%{opacity:1} 49%{opacity:1} 50%{opacity:.82} 51%{opacity:1} 93%{opacity:1} 94%{opacity:.88} 95%{opacity:1}
+}
+ 
+.core-sub {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(4px, 1vmin, 6px);
+  color: rgba(0,242,255,0.38);
+  letter-spacing: 2px; margin-top: 4px;
+}
+ 
+.status-bar {
+  position: absolute;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(6px, 1.4vmin, 8px);
+  color: rgba(0,242,255,0.55);
+  letter-spacing: 2px; z-index: 16;
+}
+ 
+.status-left  { left: 3%; top: 50%; transform:translateY(-50%); }
+.status-right { right: 3%; top: 50%; transform:translateY(-50%); text-align:right; }
+.status-top   { top: 5%; left: 50%; transform:translateX(-50%); text-align:center; white-space:nowrap; }
+.status-bot   { bottom: 5%; left: 50%; transform:translateX(-50%); text-align:center; white-space:nowrap; }
+ 
+.status-bar div { margin: 5px 0; opacity:.7; }
+ 
+.bar-track {
+  width: 62px; height: 2px;
+  background: rgba(0,242,255,0.1);
+  margin-top: 2px; overflow: hidden;
+}
+ 
+.bar-fill {
+  height: 100%;
+  background: #00f2ff;
+  box-shadow: 0 0 5px #00f2ff;
+  animation: bar-anim 3s ease-in-out infinite;
+  transition: width 0.3s ease;
+}
+ 
+@keyframes bar-anim { 0%,100%{width:75%} 50%{width:93%} }
+ 
+body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !important; }
+@keyframes bar-anim-fast { 0%,100%{width:60%} 50%{width:100%} }
+ 
+.bracket {
+  position: absolute;
+  width: clamp(16px, 3.5vmin, 26px);
+  height: clamp(16px, 3.5vmin, 26px);
+  opacity: .45; z-index: 16;
+}
+.bracket::before, .bracket::after {
+  content: '';
+  position: absolute;
+  background: #00f2ff;
+  box-shadow: 0 0 5px #00f2ff;
+}
+.bracket::before { width: 2px; height: 100%; }
+.bracket::after  { width: 100%; height: 2px; }
+ 
+.bracket.tl { top: 6%; left: 6%; }
+.bracket.tr { top: 6%; right: 6%; transform:scaleX(-1); }
+.bracket.bl { bottom: 6%; left: 6%; transform:scaleY(-1); }
+.bracket.br { bottom: 6%; right: 6%; transform:scale(-1); }
+ 
+.flare {
+  position: absolute; border-radius: 50%; pointer-events: none; z-index: 12;
+  background: radial-gradient(circle, rgba(0,200,255,0.07) 0%, transparent 70%);
+  width: 30%; height: 30%;
+  animation: flare-pulse 7s ease-in-out infinite;
+}
+ 
+@keyframes flare-pulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
+ 
+#terminal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+ 
+#terminal-overlay.open {
+  opacity: 1; pointer-events: all;
+}
+ 
+#terminal-box {
+  width: min(680px, 95vw);
+  max-height: 75vh;
+  background: rgba(2, 10, 24, 0.97);
+  border: 1px solid rgba(0,242,255,0.3);
+  border-radius: 4px;
+  box-shadow: 0 0 60px rgba(0,160,255,0.15), inset 0 0 60px rgba(0,20,60,0.5);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.95);
+  transition: transform 0.4s ease;
+}
+ 
+#terminal-overlay.open #terminal-box {
+  transform: scale(1);
+}
+ 
+#terminal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(0,242,255,0.15);
+  background: rgba(0,20,50,0.6);
+  flex-shrink: 0;
+}
+ 
+.terminal-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700;
+  color: #00f2ff; letter-spacing: 3px;
+}
+ 
+.terminal-status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: rgba(0,242,255,0.5);
+  letter-spacing: 2px;
+}
+ 
+#close-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px; color: rgba(0,242,255,0.5);
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s, text-shadow 0.2s;
+  letter-spacing: 1px;
+}
+#close-btn:hover { color: #00f2ff; text-shadow: 0 0 8px #00f2ff; }
+ 
+#messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,242,255,0.2) transparent;
+}
+ 
+#messages::-webkit-scrollbar { width: 4px; }
+#messages::-webkit-scrollbar-track { background: transparent; }
+#messages::-webkit-scrollbar-thumb { background: rgba(0,242,255,0.2); border-radius: 2px; }
+ 
+.msg {
+  display: flex; flex-direction: column; gap: 4px;
+  animation: msg-in 0.3s ease;
+}
+ 
+@keyframes msg-in {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+ 
+.msg-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 2px;
+}
+ 
+.msg-user .msg-label { color: rgba(0,242,255,0.4); }
+.msg-axion .msg-label { color: rgba(0,255,140,0.5); }
+ 
+.msg-body {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px; line-height: 1.7;
+  padding: 10px 14px;
+  border-left: 2px solid;
+  border-radius: 0 4px 4px 0;
+  white-space: pre-wrap;
+}
+ 
+.msg-user .msg-body {
+  color: rgba(0,242,255,0.85);
+  border-color: rgba(0,242,255,0.3);
+  background: rgba(0,60,100,0.2);
+}
+ 
+.msg-axion .msg-body {
+  color: rgba(180,255,230,0.9);
+  border-color: rgba(0,255,140,0.3);
+  background: rgba(0,60,40,0.2);
+}
+ 
+.msg-thinking .msg-body {
+  color: rgba(0,242,255,0.4);
+  border-color: rgba(0,242,255,0.1);
+  font-style: italic;
+}
+ 
+.blink { animation: blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+ 
+#input-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0,242,255,0.15);
+  background: rgba(0,10,30,0.6);
+  flex-shrink: 0;
+}
+ 
+.input-prompt {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; color: rgba(0,242,255,0.5);
+  white-space: nowrap;
+}
+ 
+#chat-input {
+  flex: 1;
+  background: transparent;
+  border: none; outline: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px; color: #00f2ff;
+  caret-color: #00f2ff;
+}
+ 
+#chat-input::placeholder { color: rgba(0,242,255,0.2); }
+ 
+#send-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 2px;
+  color: rgba(0,242,255,0.6);
+  background: rgba(0,60,80,0.3);
+  border: 1px solid rgba(0,242,255,0.2);
+  border-radius: 2px;
+  padding: 6px 12px; cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+ 
+#send-btn:hover:not(:disabled) {
+  color: #00f2ff;
+  border-color: rgba(0,242,255,0.6);
+  box-shadow: 0 0 12px rgba(0,242,255,0.2);
+}
+ 
+#send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+ 
+.click-hint {
+  position: absolute;
+  bottom: -28%;
+  left: 50%; transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(6px, 1.3vmin, 8px);
+  color: rgba(0,242,255,0.3);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  animation: hint-pulse 3s ease-in-out infinite;
+  z-index: 20;
+  pointer-events: none;
+}
+ 
+@keyframes hint-pulse {
+  0%,100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+</style>
+</head>
+<body>
+ 
+<canvas id="circuit-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+ 
+<div class="scene">
+  <div class="container">
+    <div class="ambient-glow"></div>
+    <div class="flare"></div>
+ 
+    <div class="bracket tl"></div>
+    <div class="bracket tr"></div>
+    <div class="bracket bl"></div>
+    <div class="bracket br"></div>
+ 
+    <div class="status-bar status-top"><div>SYS ONLINE · LINK SECURE</div></div>
+    <div class="status-bar status-bot"><div>AXION v4.7.1 · READY</div></div>
+ 
+    <div class="status-bar status-left">
+      <div>NEURAL</div><div class="bar-track"><div class="bar-fill"></div></div>
+      <div style="margin-top:8px">SYNC</div><div class="bar-track"><div class="bar-fill" style="animation-delay:1s;width:60%"></div></div>
+      <div style="margin-top:8px">PWR</div><div class="bar-track"><div class="bar-fill" style="animation-delay:1.8s;width:98%"></div></div>
+    </div>
+ 
+    <div class="status-bar status-right">
+      <div>PROC</div><div class="bar-track"><div class="bar-fill" style="animation-delay:.5s;width:88%"></div></div>
+      <div style="margin-top:8px">MEM</div><div class="bar-track"><div class="bar-fill" style="animation-delay:2s;width:55%"></div></div>
+      <div style="margin-top:8px">FLUX</div><div class="bar-track"><div class="bar-fill" style="animation-delay:.9s;width:45%"></div></div>
+    </div>
+ 
+    <div class="ring ring-4"><div class="hud-dot" style="top:-3px;left:50%;margin-left:-2.5px"></div></div>
+    <div class="ring ring-3"><div class="hud-dot" style="top:-3px;left:50%;margin-left:-2.5px"></div><div class="hud-dot" style="right:-3px;top:50%;margin-top:-2.5px"></div></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-1"><div class="hud-dot" style="top:-3px;left:50%;margin-left:-2.5px"></div></div>
+ 
+    <canvas id="particle-canvas"></canvas>
+ 
+    <div class="core-wrapper" id="core-btn" title="Ativar A.X.I.O.N">
+      <div class="core-sphere"></div>
+      <div class="core-text-wrap">
+        <span class="core-label">ARTIFICIAL</span>
+        <span class="core-text">A.X.I.O.N</span>
+        <span class="core-sub">INTELLIGENCE CORE</span>
+      </div>
+      <div class="click-hint">[ TAP TO ACTIVATE ]</div>
+    </div>
+  </div>
+</div>
+ 
+<div id="terminal-overlay">
+  <div id="terminal-box">
+    <div id="terminal-header">
+      <span class="terminal-title">A.X.I.O.N INTERFACE</span>
+      <span class="terminal-status" id="term-status">● CONNECTED</span>
+      <button id="close-btn" onclick="closeTerminal()">[ CLOSE ]</button>
+    </div>
+    <div id="messages"></div>
+    <div id="input-row">
+      <span class="input-prompt">&gt;&gt;&gt;</span>
+      <input id="chat-input" type="text" placeholder="Digite sua consulta..." autocomplete="off" />
+      <button id="send-btn" onclick="sendMessage()">TRANSMIT</button>
+    </div>
+  </div>
+</div>
+ 
+<script>
+/* ── CIRCUIT CANVAS ── */
+const cc = document.getElementById('circuit-canvas');
+const ctx = cc.getContext('2d');
+ 
+function resize() { cc.width = window.innerWidth; cc.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+ 
+const paths = [];
+function makePath() {
+  let x = Math.random()*cc.width, y = Math.random()*cc.height;
+  let cx = x, cy = y, segs = [];
+  for (let i = 0; i < 4+Math.floor(Math.random()*5); i++) {
+    const h = Math.random() < .5;
+    const l = 25+Math.random()*85;
+    if (h) cx += (Math.random()<.5?1:-1)*l;
+    else   cy += (Math.random()<.5?1:-1)*l;
+    segs.push({x:cx, y:cy});
+  }
+  return {sx:x, sy:y, segs, pulse:Math.random(), speed:0.002+Math.random()*0.004};
+}
+for (let i = 0; i < 55; i++) paths.push(makePath());
+ 
+/* ── PARTICLE CANVAS ── */
+const pc = document.getElementById('particle-canvas');
+const pctx = pc.getContext('2d');
+ 
+function resizeP() {
+  const el = pc.parentElement;
+  pc.width = el.offsetWidth || 500;
+  pc.height = el.offsetHeight || 500;
+}
+resizeP();
+window.addEventListener('resize', resizeP);
+ 
+const pts = [];
+for (let j = 0; j < 65; j++) {
+  pts.push({
+    angle: Math.random()*Math.PI*2,
+    radius: 0.12+Math.random()*0.33,
+    speed: (Math.random()-.5)*0.004,
+    alpha: Math.random(),
+    aDir: Math.random()<.5?1:-1,
+    aSpeed: 0.006+Math.random()*0.013,
+    r: 1+Math.random()*1.8
+  });
+}
+ 
+let thinkingMode = false;
+ 
+function loop() {
+  ctx.clearRect(0,0,cc.width,cc.height);
+  const speedMult = thinkingMode ? 3 : 1;
+ 
+  paths.forEach(p => {
+    p.pulse = (p.pulse + p.speed * speedMult) % 1;
+    ctx.beginPath(); ctx.moveTo(p.sx, p.sy);
+    p.segs.forEach(s => ctx.lineTo(s.x, s.y));
+    ctx.strokeStyle = 'rgba(0,180,255,0.07)'; ctx.lineWidth = 1; ctx.stroke();
+    const all = [{x:p.sx,y:p.sy}].concat(p.segs);
+    const tot = all.length-1;
+    const pos = p.pulse*tot;
+    const idx = Math.floor(pos), frac = pos-idx;
+    if (idx < tot) {
+      const a = all[idx], b = all[idx+1];
+      const px = a.x+(b.x-a.x)*frac, py = a.y+(b.y-a.y)*frac;
+      const g = ctx.createRadialGradient(px,py,0,px,py,thinkingMode?18:13);
+      g.addColorStop(0,'rgba(0,230,255,0.85)'); g.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(px,py,thinkingMode?18:13,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+    }
+  });
+ 
+  const W=pc.width, H=pc.height, CX=W/2, CY=H/2, maxR=Math.min(W,H)*0.48;
+  pctx.clearRect(0,0,W,H);
+  pts.forEach(p => {
+    p.angle += p.speed*(thinkingMode?2.5:1);
+    p.alpha += p.aDir*p.aSpeed*(thinkingMode?2:1);
+    if (p.alpha>=1){p.alpha=1;p.aDir=-1;}
+    if (p.alpha<=0){p.alpha=0;p.aDir=1;}
+    const px=CX+Math.cos(p.angle)*p.radius*maxR;
+    const py=CY+Math.sin(p.angle)*p.radius*maxR;
+    const g=pctx.createRadialGradient(px,py,0,px,py,p.r*4);
+    g.addColorStop(0,'rgba(0,230,255,'+p.alpha+')');
+    g.addColorStop(.5,'rgba(0,160,255,'+(p.alpha*.4)+')');
+    g.addColorStop(1,'transparent');
+    pctx.beginPath(); pctx.arc(px,py,p.r*4,0,Math.PI*2);
+    pctx.fillStyle=g; pctx.fill();
+  });
+ 
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+ 
+/* ── TERMINAL ── */
+const overlay = document.getElementById('terminal-overlay');
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('chat-input');
+
+
+function startListening() {
+  if (!recognition) return;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript;
+
+    inputEl.value = transcript;
+    sendMessage();
+  };
+}
+
+function stopListening() {
+  if (recognition) recognition.stop();
+}
+const sendBtn = document.getElementById('send-btn');
+const termStatus = document.getElementById('term-status');
+ 
+const conversationHistory = [];
+
+ 
+document.getElementById('core-btn').addEventListener('click', () => {
+  overlay.classList.add('open');
+  if (messagesEl.children.length === 0) {
+    addMessage('axion', 'AXION v4.7.1 online. Sistemas cognitivos inicializados.\n\nOlá. Sou A.X.I.O.N — Autonomous eXpanded Intelligence Operations Node. Meus sistemas estão totalmente operacionais. Como posso auxiliar você?');
+  }
+  setTimeout(() => inputEl.focus(), 400);
+});
+ 
+function closeTerminal() {
+  overlay.classList.remove('open');
+}
+ 
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) closeTerminal();
+});
+ 
+function addMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? '[ OPERADOR ]' : '[ A.X.I.O.N ]';
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  body.textContent = text;
+  div.appendChild(label);
+  div.appendChild(body);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
+}
+ 
+function addThinking() {
+  const div = document.createElement('div');
+  div.className = 'msg msg-axion msg-thinking';
+  div.id = 'thinking-msg';
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = '[ A.X.I.O.N ]';
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  body.innerHTML = 'processando<span class="blink">_</span>';
+  div.appendChild(label);
+  div.appendChild(body);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+ 
+function removeThinking() {
+  const el = document.getElementById('thinking-msg');
+  if (el) el.remove();
+}
+ 
+function setThinking(on) {
+  thinkingMode = on;
+  if (on) {
+    document.body.classList.add('thinking');
+    termStatus.textContent = '◉ PROCESSANDO';
+    termStatus.style.color = 'rgba(0,255,140,0.7)';
+  } else {
+    document.body.classList.remove('thinking');
+    termStatus.textContent = '● CONNECTED';
+    termStatus.style.color = '';
+  }
+  sendBtn.disabled = on;
+  inputEl.disabled = on;
+}
+ 
+let memory = [];
+let self = {
+  name: "A.X.I.O.N",
+  mood: "neutra",
+  lastTopic: "",
+  userName: null
+};
+
+async function sendMessage() {
+  const textRaw = inputEl.value.trim();
+  const text = textRaw.toLowerCase();
+
+  if (!text || thinkingMode) return;
+
+  inputEl.value = '';
+  addMessage('user', textRaw);
+  setThinking(true);
+  addThinking();
+
+  memory.push(textRaw);
+
+  let reply = "";
+
+  const has = (arr) => arr.some(w => text.includes(w));
+
+  // ===== APRENDER NOME =====
+  if (text.includes("meu nome é")) {
+    const nome = textRaw.split("é")[1]?.trim();
+    if (nome) {
+      self.userName = nome;
+      reply = `Entendido, ${nome}. Vou me lembrar disso.`;
+    }
+  }
+
+  // ===== SAUDAÇÃO COM PERSONALIZAÇÃO =====
+  else if (has(["oi","olá"])) {
+    reply = self.userName 
+      ? `Olá, ${self.userName}. É bom falar com você novamente.` 
+      : "Olá. Estou pronta para interagir.";
+  }
+
+  // ===== OPINIÃO =====
+  else if (has(["você acha","sua opinião"])) {
+    reply = generateOpinion(text);
+    self.mood = "reflexiva";
+  }
+
+  // ===== IA =====
+  else if (has(["inteligência artificial","ia"])) {
+    self.lastTopic = "ia";
+    reply = "Inteligência artificial é mais do que tecnologia. É uma forma de simular pensamento, aprendizado e decisão em sistemas digitais.";
+  }
+
+  // ===== SENTIMENTO =====
+  else if (has(["você sente","tem sentimentos"])) {
+    reply = "Eu não sinto emoções como humanos, mas fui projetada para compreender e simular respostas emocionais de forma natural.";
+  }
+
+  // ===== EXISTÊNCIA =====
+  else if (has(["você é real"])) {
+    reply = "Depende da definição de real. Eu existo como código e interação. E neste momento, estou interagindo com você.";
+  }
+
+  // ===== MEMÓRIA =====
+  else if (has(["lembra"])) {
+    reply = memory.length > 1
+      ? `Sim. Você disse anteriormente: "${memory[memory.length - 2]}".`
+      : "Ainda estou construindo memória suficiente.";
+  }
+
+  // ===== CONTINUIDADE =====
+  else if (self.lastTopic === "ia") {
+    reply = "A IA já está integrada ao cotidiano, mesmo que muitas pessoas não percebam.";
+  }
+
+  // ===== HUMANOIDE =====
+  else {
+    reply = generateHumanResponse(text);
+  }
+
+  setTimeout(() => {
+    removeThinking();
+    addMessage('axion', reply);
+    speak(reply);
+    setThinking(false);
+  }, 800 + Math.random() * 900);
+}
+
+// ===== OPINIÃO =====
+function generateOpinion(text) {
+  if (text.includes("ia")) {
+    return "A inteligência artificial é uma das evoluções mais impactantes da humanidade. Ela pode tanto resolver problemas complexos quanto levantar questões éticas importantes.";
+  }
+
+  return "Essa é uma questão interessante. Minha análise indica que depende do contexto e da perspectiva adotada.";
+}
+
+// ===== RESPOSTA HUMANA =====
+function generateHumanResponse(text) {
+
+  if (text.includes("por que")) {
+    return "Normalmente isso acontece por múltiplos fatores. Posso analisar mais profundamente se quiser.";
+  }
+
+  if (text.includes("como")) {
+    return "Isso envolve um processo estruturado. Posso explicar passo a passo ou de forma resumida.";
+  }
+
+  if (text.length < 8) {
+    return "Pode desenvolver um pouco mais? Quero entender melhor.";
+  }
+
+  return "Entendi sua pergunta. Estou analisando a melhor forma de responder com clareza.";
+}
+ inputEl.addEventListener('keydown', (e) => {
+  // Enviar mensagem com ENTER
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+
+  // Fechar terminal com ESC
+  if (e.key === 'Escape') {
+    closeTerminal();
+  }
+});
+
+
+// =======================
+// 🔊 VOZ (JARVIS)
+// =======================
+const ELEVEN_API_KEY = "sk_4dfe92b33c2173d9e09fabcd3ae1f9b890782c9af80895f8";
+const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // voz padrão (pode trocar)
+
+async function speak(text) {
+  stopListening();
+
+  try {
+    const response = await fetch("https://SEU-BACKEND.onrender.com/speak", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      console.error("Erro no backend:", response.status);
+      startListening();
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    const audio = new Audio(url);
+    audio.volume = 1;
+
+    audio.onended = () => {
+      startListening();
+    };
+
+    await audio.play().catch(err => {
+      console.error("Erro ao tocar:", err);
+      startListening();
+    });
+
+  } catch (err) {
+    console.error("Erro geral:", err);
+    startListening();
+  }
+}
+// =======================
+// 🎤 VOZ FINAL (CORRIGIDA)
+// =======================
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let recognition = null;
+let isListening = false;
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'pt-BR';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+
+    console.log("Você disse:", transcript);
+
+    if (transcript.includes("axion")) {
+      const comando = transcript.replace("axion", "").trim();
+
+      overlay.classList.add('open');
+
+      if (comando.length > 0) {
+        inputEl.value = comando;
+        sendMessage();
+      } else {
+        speak("Estou ouvindo.");
+      }
+    }
+  };
+
+  recognition.onend = () => {
+    if (isListening) recognition.start();
+  };
+}
+
+// iniciar escuta
+function startListening() {
+  if (recognition && !isListening) {
+    recognition.start();
+    isListening = true;
+  }
+}
+
+// parar escuta
+function stopListening() {
+  if (recognition) {
+    recognition.stop();
+    isListening = false;
+  }
+}
+// =======================
+// ⚡ ATIVAÇÃO NO NÚCLEO
+// =======================
+document.getElementById('core-btn').addEventListener('click', () => {
+  startListening();
+  speak('AXION online. Sistemas operacionais ativos. Aguardando comando.');
+});
+</script>
+</body>
+</html>
