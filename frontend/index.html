@@ -921,7 +921,7 @@ async function sendMessage() {
     addMessage('axion', reply);
     setThinking(false);
     speak(reply);
-  }, 600 + Math.random() * 700);
+  }, 1000); // ← delay em ms + ponto e vírgula no final
 }
  
 function generateOpinion(text) {
