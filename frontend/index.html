@@ -841,56 +841,39 @@ function stopListeningTemp() {
 // ── VOICE (ElevenLabs via backend) ──
 let isSpeaking = false;
  
-async function speak(text) {
+function speak(text) {
   if (!text) return;
-  isSpeaking = true;
-  stopListeningTemp();
+  window.speechSynthesis.cancel();
   setMicState('speaking');
 
-  try {
-    const response = await fetch('https://api.v7.unrealspeech.com/stream', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ma0vickzELK9hDxlEB5oF6XJNID7kIHVGqA2Rf8It6jcK8dGX2zd59`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        Text: text,
-        VoiceId: 'Scarlett',
-        Bitrate: '192k',
-        Speed: '0',
-        Pitch: '1',
-        Codec: 'libmp3lame',
-      }),
-    });
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'pt-BR';
+  utter.rate = 0.9;
+  utter.pitch = 0.85;
+  utter.volume = 1;
 
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.volume = 1;
+  // Tenta pegar voz PT-BR masculina
+  const voices = window.speechSynthesis.getVoices();
+  const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.toLowerCase().includes('thiago'))
+    || voices.find(v => v.lang === 'pt-BR' && v.gender === 'male')
+    || voices.find(v => v.lang === 'pt-BR')
+    || voices.find(v => v.lang.startsWith('pt'));
 
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      isSpeaking = false;
-      if (recognitionActive) startListening();
-    };
+  if (ptVoice) utter.voice = ptVoice;
 
-    audio.onerror = () => {
-      isSpeaking = false;
-      if (recognitionActive) startListening();
-    };
-
-    await audio.play().catch(err => {
-      console.error('Audio play error:', err);
-      isSpeaking = false;
-      if (recognitionActive) startListening();
-    });
-
-  } catch (err) {
-    console.error('Speak error:', err);
+  utter.onend = () => {
     isSpeaking = false;
     if (recognitionActive) startListening();
-  }
+  };
+
+  utter.onerror = () => {
+    isSpeaking = false;
+    if (recognitionActive) startListening();
+  };
+
+  isSpeaking = true;
+  stopListeningTemp();
+  window.speechSynthesis.speak(utter);
 }
  
 // ── SEND MESSAGE ──
