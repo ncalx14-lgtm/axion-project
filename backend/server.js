@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
  
 // Serve o frontend
-app.use(express.static(path.join(__dirname, 'frontend')));
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
  
 // Rota de health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -66,7 +66,7 @@ app.post('/speak', async (req, res) => {
  
 // Qualquer outra rota devolve o index.html (SPA fallback)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
  
 const PORT = process.env.PORT || 3000;
