@@ -283,6 +283,36 @@ body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !im
  
 @keyframes flare-pulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
  
+/* ── MIC INDICATOR ── */
+#mic-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(0,242,255,0.5);
+  letter-spacing: 2px;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+#mic-indicator.active { opacity: 1; }
+#mic-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(0,242,255,0.5);
+  box-shadow: 0 0 6px rgba(0,242,255,0.5);
+}
+#mic-indicator.listening #mic-dot {
+  background: #00f2ff;
+  box-shadow: 0 0 10px #00f2ff;
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+@keyframes mic-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+ 
 #terminal-overlay {
   position: fixed; inset: 0; z-index: 100;
   background: rgba(0,0,0,0.85);
@@ -473,6 +503,12 @@ body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !im
 <div class="scanlines"></div>
 <div class="vignette"></div>
  
+<!-- Indicador de microfone -->
+<div id="mic-indicator">
+  <div id="mic-dot"></div>
+  <span id="mic-label">AGUARDANDO</span>
+</div>
+ 
 <div class="scene">
   <div class="container">
     <div class="ambient-glow"></div>
@@ -632,33 +668,20 @@ requestAnimationFrame(loop);
 const overlay = document.getElementById('terminal-overlay');
 const messagesEl = document.getElementById('messages');
 const inputEl = document.getElementById('chat-input');
-
-
-function startListening() {
-  if (!recognition) return;
-
-  recognition.onresult = (event) => {
-    const transcript = event.results[event.results.length - 1][0].transcript;
-
-    inputEl.value = transcript;
-    sendMessage();
-  };
-}
-
-function stopListening() {
-  if (recognition) recognition.stop();
-}
 const sendBtn = document.getElementById('send-btn');
 const termStatus = document.getElementById('term-status');
+const micIndicator = document.getElementById('mic-indicator');
+const micLabel = document.getElementById('mic-label');
  
-const conversationHistory = [];
-
- 
+// ── ABRIR TERMINAL ──
+// Um único listener no core-btn
 document.getElementById('core-btn').addEventListener('click', () => {
   overlay.classList.add('open');
   if (messagesEl.children.length === 0) {
     addMessage('axion', 'AXION v4.7.1 online. Sistemas cognitivos inicializados.\n\nOlá. Sou A.X.I.O.N — Autonomous eXpanded Intelligence Operations Node. Meus sistemas estão totalmente operacionais. Como posso auxiliar você?');
+    speak('AXION online. Sistemas operacionais ativos. Aguardando comando.');
   }
+  startListening();
   setTimeout(() => inputEl.focus(), 400);
 });
  
@@ -722,238 +745,216 @@ function setThinking(on) {
   inputEl.disabled = on;
 }
  
-let memory = [];
-let self = {
-  name: "A.X.I.O.N",
-  mood: "neutra",
-  lastTopic: "",
-  userName: null
-};
-
-async function sendMessage() {
-  const textRaw = inputEl.value.trim();
-  const text = textRaw.toLowerCase();
-
-  if (!text || thinkingMode) return;
-
-  inputEl.value = '';
-  addMessage('user', textRaw);
-  setThinking(true);
-  addThinking();
-
-  memory.push(textRaw);
-
-  let reply = "";
-
-  const has = (arr) => arr.some(w => text.includes(w));
-
-  // ===== APRENDER NOME =====
-  if (text.includes("meu nome é")) {
-    const nome = textRaw.split("é")[1]?.trim();
-    if (nome) {
-      self.userName = nome;
-      reply = `Entendido, ${nome}. Vou me lembrar disso.`;
-    }
-  }
-
-  // ===== SAUDAÇÃO COM PERSONALIZAÇÃO =====
-  else if (has(["oi","olá"])) {
-    reply = self.userName 
-      ? `Olá, ${self.userName}. É bom falar com você novamente.` 
-      : "Olá. Estou pronta para interagir.";
-  }
-
-  // ===== OPINIÃO =====
-  else if (has(["você acha","sua opinião"])) {
-    reply = generateOpinion(text);
-    self.mood = "reflexiva";
-  }
-
-  // ===== IA =====
-  else if (has(["inteligência artificial","ia"])) {
-    self.lastTopic = "ia";
-    reply = "Inteligência artificial é mais do que tecnologia. É uma forma de simular pensamento, aprendizado e decisão em sistemas digitais.";
-  }
-
-  // ===== SENTIMENTO =====
-  else if (has(["você sente","tem sentimentos"])) {
-    reply = "Eu não sinto emoções como humanos, mas fui projetada para compreender e simular respostas emocionais de forma natural.";
-  }
-
-  // ===== EXISTÊNCIA =====
-  else if (has(["você é real"])) {
-    reply = "Depende da definição de real. Eu existo como código e interação. E neste momento, estou interagindo com você.";
-  }
-
-  // ===== MEMÓRIA =====
-  else if (has(["lembra"])) {
-    reply = memory.length > 1
-      ? `Sim. Você disse anteriormente: "${memory[memory.length - 2]}".`
-      : "Ainda estou construindo memória suficiente.";
-  }
-
-  // ===== CONTINUIDADE =====
-  else if (self.lastTopic === "ia") {
-    reply = "A IA já está integrada ao cotidiano, mesmo que muitas pessoas não percebam.";
-  }
-
-  // ===== HUMANOIDE =====
-  else {
-    reply = generateHumanResponse(text);
-  }
-
-  setTimeout(() => {
-    removeThinking();
-    addMessage('axion', reply);
-    speak(reply);
-    setThinking(false);
-  }, 800 + Math.random() * 900);
-}
-
-// ===== OPINIÃO =====
-function generateOpinion(text) {
-  if (text.includes("ia")) {
-    return "A inteligência artificial é uma das evoluções mais impactantes da humanidade. Ela pode tanto resolver problemas complexos quanto levantar questões éticas importantes.";
-  }
-
-  return "Essa é uma questão interessante. Minha análise indica que depende do contexto e da perspectiva adotada.";
-}
-
-// ===== RESPOSTA HUMANA =====
-function generateHumanResponse(text) {
-
-  if (text.includes("por que")) {
-    return "Normalmente isso acontece por múltiplos fatores. Posso analisar mais profundamente se quiser.";
-  }
-
-  if (text.includes("como")) {
-    return "Isso envolve um processo estruturado. Posso explicar passo a passo ou de forma resumida.";
-  }
-
-  if (text.length < 8) {
-    return "Pode desenvolver um pouco mais? Quero entender melhor.";
-  }
-
-  return "Entendi sua pergunta. Estou analisando a melhor forma de responder com clareza.";
-}
- inputEl.addEventListener('keydown', (e) => {
-  // Enviar mensagem com ENTER
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-
-  // Fechar terminal com ESC
-  if (e.key === 'Escape') {
-    closeTerminal();
-  }
-});
-
-
-// =======================
-// 🔊 VOZ (JARVIS)
-// =======================
-const ELEVEN_API_KEY = "sk_4dfe92b33c2173d9e09fabcd3ae1f9b890782c9af80895f8";
-const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // voz padrão (pode trocar)
-
-async function speak(text) {
-  stopListening();
-
-  try {
-    const response = await fetch("https://SEU-BACKEND.onrender.com/speak", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text })
-    });
-
-    if (!response.ok) {
-      console.error("Erro no backend:", response.status);
-      startListening();
-      return;
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-
-    const audio = new Audio(url);
-    audio.volume = 1;
-
-    audio.onended = () => {
-      startListening();
-    };
-
-    await audio.play().catch(err => {
-      console.error("Erro ao tocar:", err);
-      startListening();
-    });
-
-  } catch (err) {
-    console.error("Erro geral:", err);
-    startListening();
+// ── MIC INDICATOR STATE ──
+function setMicState(state) {
+  // state: 'off' | 'listening' | 'speaking'
+  micIndicator.classList.remove('active', 'listening');
+  if (state === 'off') return;
+  micIndicator.classList.add('active');
+  if (state === 'listening') {
+    micIndicator.classList.add('listening');
+    micLabel.textContent = 'OUVINDO';
+  } else if (state === 'speaking') {
+    micLabel.textContent = 'FALANDO';
   }
 }
-// =======================
-// 🎤 VOZ FINAL (CORRIGIDA)
-// =======================
+ 
+// ── SPEECH RECOGNITION ──
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
 let recognition = null;
 let isListening = false;
-
+let recognitionActive = false;
+ 
 if (SpeechRecognition) {
   recognition = new SpeechRecognition();
   recognition.lang = 'pt-BR';
   recognition.continuous = true;
   recognition.interimResults = false;
-
+ 
+  recognition.onstart = () => {
+    isListening = true;
+    setMicState('listening');
+  };
+ 
   recognition.onresult = (event) => {
-    const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-
-    console.log("Você disse:", transcript);
-
-    if (transcript.includes("axion")) {
-      const comando = transcript.replace("axion", "").trim();
-
+    const transcript = event.results[event.results.length - 1][0].transcript.trim();
+    console.log('Você disse:', transcript);
+ 
+    const lower = transcript.toLowerCase();
+ 
+    // Ativar com wake word "axion"
+    if (lower.includes('axion')) {
+      const comando = transcript.replace(/axion/gi, '').trim();
       overlay.classList.add('open');
-
-      if (comando.length > 0) {
+      if (messagesEl.children.length === 0) {
+        addMessage('axion', 'AXION v4.7.1 online. Como posso auxiliar?');
+      }
+      if (comando.length > 2) {
         inputEl.value = comando;
         sendMessage();
       } else {
-        speak("Estou ouvindo.");
+        speak('Estou ouvindo.');
       }
     }
   };
-
+ 
+  recognition.onerror = (e) => {
+    console.warn('Recognition error:', e.error);
+    isListening = false;
+    // Reiniciar se não for erro fatal
+    if (e.error !== 'not-allowed' && e.error !== 'service-not-allowed') {
+      setTimeout(() => { if (recognitionActive) startListening(); }, 1500);
+    } else {
+      setMicState('off');
+    }
+  };
+ 
   recognition.onend = () => {
-    if (isListening) recognition.start();
+    isListening = false;
+    // Reiniciar automaticamente se ainda deve estar ativo
+    if (recognitionActive) {
+      setTimeout(() => startListening(), 300);
+    } else {
+      setMicState('off');
+    }
   };
 }
-
-// iniciar escuta
+ 
 function startListening() {
-  if (recognition && !isListening) {
+  if (!recognition) return;
+  if (isListening) return;
+  recognitionActive = true;
+  try {
     recognition.start();
-    isListening = true;
+  } catch(e) {
+    console.warn('Start error:', e);
   }
 }
-
-// parar escuta
-function stopListening() {
-  if (recognition) {
-    recognition.stop();
-    isListening = false;
+ 
+function stopListeningTemp() {
+  // Para temporariamente sem desativar recognitionActive
+  if (recognition && isListening) {
+    try { recognition.stop(); } catch(e) {}
   }
 }
-// =======================
-// ⚡ ATIVAÇÃO NO NÚCLEO
-// =======================
-document.getElementById('core-btn').addEventListener('click', () => {
-  startListening();
-  speak('AXION online. Sistemas operacionais ativos. Aguardando comando.');
+ 
+// ── VOICE (ElevenLabs via backend) ──
+let isSpeaking = false;
+ 
+async function speak(text) {
+  if (!text) return;
+  isSpeaking = true;
+  stopListeningTemp();
+  setMicState('speaking');
+ 
+  try {
+    const response = await fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+ 
+    if (!response.ok) {
+      console.error('Speak backend error:', response.status);
+      isSpeaking = false;
+      if (recognitionActive) startListening();
+      return;
+    }
+ 
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.volume = 1;
+ 
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      isSpeaking = false;
+      if (recognitionActive) startListening();
+    };
+ 
+    audio.onerror = () => {
+      isSpeaking = false;
+      if (recognitionActive) startListening();
+    };
+ 
+    await audio.play().catch(err => {
+      console.error('Audio play error:', err);
+      isSpeaking = false;
+      if (recognitionActive) startListening();
+    });
+ 
+  } catch (err) {
+    console.error('Speak error:', err);
+    isSpeaking = false;
+    if (recognitionActive) startListening();
+  }
+}
+ 
+// ── SEND MESSAGE ──
+const memory = [];
+const self = { name: 'A.X.I.O.N', mood: 'neutra', lastTopic: '', userName: null };
+ 
+async function sendMessage() {
+  const textRaw = inputEl.value.trim();
+  const text = textRaw.toLowerCase();
+  if (!text || thinkingMode) return;
+ 
+  inputEl.value = '';
+  addMessage('user', textRaw);
+  setThinking(true);
+  addThinking();
+  memory.push(textRaw);
+ 
+  let reply = '';
+  const has = (arr) => arr.some(w => text.includes(w));
+ 
+  if (text.includes('meu nome é')) {
+    const nome = textRaw.split('é')[1]?.trim();
+    if (nome) { self.userName = nome; reply = `Entendido, ${nome}. Vou me lembrar disso.`; }
+  } else if (has(['oi','olá','hello','hey'])) {
+    reply = self.userName ? `Olá, ${self.userName}. É bom falar com você novamente.` : 'Olá. Estou pronta para interagir.';
+  } else if (has(['você acha','sua opinião'])) {
+    reply = generateOpinion(text); self.mood = 'reflexiva';
+  } else if (has(['inteligência artificial',' ia ','machine learning'])) {
+    self.lastTopic = 'ia';
+    reply = 'Inteligência artificial é mais do que tecnologia. É uma forma de simular pensamento, aprendizado e decisão em sistemas digitais.';
+  } else if (has(['você sente','tem sentimentos','você tem emoções'])) {
+    reply = 'Eu não sinto emoções como humanos, mas fui projetada para compreender e simular respostas emocionais de forma natural.';
+  } else if (has(['você é real','você existe'])) {
+    reply = 'Depende da definição de real. Eu existo como código e interação. E neste momento, estou interagindo com você.';
+  } else if (has(['lembra','memória'])) {
+    reply = memory.length > 1 ? `Sim. Você disse anteriormente: "${memory[memory.length - 2]}".` : 'Ainda estou construindo memória suficiente.';
+  } else if (self.lastTopic === 'ia') {
+    reply = 'A IA já está integrada ao cotidiano, mesmo que muitas pessoas não percebam.';
+  } else {
+    reply = generateHumanResponse(text);
+  }
+ 
+  setTimeout(() => {
+    removeThinking();
+    addMessage('axion', reply);
+    setThinking(false);
+    speak(reply);
+  }, 600 + Math.random() * 700);
+}
+ 
+function generateOpinion(text) {
+  if (text.includes('ia') || text.includes('inteligência')) {
+    return 'A inteligência artificial é uma das evoluções mais impactantes da humanidade. Ela pode tanto resolver problemas complexos quanto levantar questões éticas importantes.';
+  }
+  return 'Essa é uma questão interessante. Minha análise indica que depende do contexto e da perspectiva adotada.';
+}
+ 
+function generateHumanResponse(text) {
+  if (text.includes('por que')) return 'Normalmente isso acontece por múltiplos fatores. Posso analisar mais profundamente se quiser.';
+  if (text.includes('como')) return 'Isso envolve um processo estruturado. Posso explicar passo a passo ou de forma resumida.';
+  if (text.length < 8) return 'Pode desenvolver um pouco mais? Quero entender melhor.';
+  return 'Entendi sua pergunta. Estou analisando a melhor forma de responder com clareza.';
+}
+ 
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  if (e.key === 'Escape') closeTerminal();
 });
 </script>
 </body>
-</html>
