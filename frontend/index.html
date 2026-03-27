@@ -1009,11 +1009,8 @@ async function callGemini(userMessage) {
 async function sendMessage() {
   const textRaw = inputEl.value.trim();
   if (!textRaw || thinkingMode) return;
- 
-  if (!GEMINI_API_KEY) {
-    openApiKeyModal();
-    return;
-  }
+
+  
  
   inputEl.value = '';
   addMessage('user', textRaw);
