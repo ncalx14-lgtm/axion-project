@@ -283,6 +283,84 @@ body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !im
  
 @keyframes flare-pulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
  
+/* ── API KEY MODAL ── */
+#apikey-modal {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+#apikey-modal.open { opacity: 1; pointer-events: all; }
+ 
+#apikey-box {
+  width: min(480px, 92vw);
+  background: rgba(2, 10, 24, 0.98);
+  border: 1px solid rgba(0,242,255,0.3);
+  border-radius: 4px;
+  box-shadow: 0 0 80px rgba(0,160,255,0.12);
+  padding: 32px;
+  display: flex; flex-direction: column; gap: 20px;
+  transform: scale(0.95);
+  transition: transform 0.4s ease;
+}
+#apikey-modal.open #apikey-box { transform: scale(1); }
+ 
+.apikey-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 700;
+  color: #00f2ff; letter-spacing: 3px;
+  text-align: center;
+}
+.apikey-desc {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; color: rgba(0,242,255,0.55);
+  letter-spacing: 1px; line-height: 1.8;
+  text-align: center;
+}
+.apikey-desc a {
+  color: #00f2ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+#apikey-input {
+  background: rgba(0,20,50,0.6);
+  border: 1px solid rgba(0,242,255,0.2);
+  border-radius: 2px;
+  padding: 10px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; color: #00f2ff;
+  outline: none; width: 100%;
+  caret-color: #00f2ff;
+  letter-spacing: 1px;
+  transition: border-color 0.2s;
+}
+#apikey-input:focus { border-color: rgba(0,242,255,0.5); }
+#apikey-input::placeholder { color: rgba(0,242,255,0.2); }
+#apikey-save {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 3px;
+  color: #00f2ff;
+  background: rgba(0,60,80,0.4);
+  border: 1px solid rgba(0,242,255,0.3);
+  border-radius: 2px;
+  padding: 10px; cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+#apikey-save:hover {
+  background: rgba(0,80,100,0.5);
+  border-color: rgba(0,242,255,0.6);
+  box-shadow: 0 0 16px rgba(0,242,255,0.15);
+}
+.apikey-warning {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: rgba(255,180,0,0.6);
+  letter-spacing: 1px; line-height: 1.7;
+  text-align: center;
+}
+ 
 /* ── MIC INDICATOR ── */
 #mic-indicator {
   position: fixed;
@@ -362,6 +440,20 @@ body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !im
   font-size: 10px; color: rgba(0,242,255,0.5);
   letter-spacing: 2px;
 }
+ 
+.terminal-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+ 
+#config-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; color: rgba(0,242,255,0.4);
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s, text-shadow 0.2s;
+  letter-spacing: 1px;
+}
+#config-btn:hover { color: #00f2ff; text-shadow: 0 0 8px #00f2ff; }
  
 #close-btn {
   font-family: 'Share Tech Mono', monospace;
@@ -503,6 +595,7 @@ body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !im
 <div class="scanlines"></div>
 <div class="vignette"></div>
  
+ 
 <!-- Indicador de microfone -->
 <div id="mic-indicator">
   <div id="mic-dot"></div>
@@ -558,7 +651,10 @@ body.thinking .bar-fill { animation: bar-anim-fast 0.5s ease-in-out infinite !im
     <div id="terminal-header">
       <span class="terminal-title">A.X.I.O.N INTERFACE</span>
       <span class="terminal-status" id="term-status">● CONNECTED</span>
-      <button id="close-btn" onclick="closeTerminal()">[ CLOSE ]</button>
+      <div class="terminal-actions">
+        <button id="config-btn" onclick="openApiKeyModal()" title="Configurar API Key">[ API ]</button>
+        <button id="close-btn" onclick="closeTerminal()">[ CLOSE ]</button>
+      </div>
     </div>
     <div id="messages"></div>
     <div id="input-row">
@@ -664,6 +760,7 @@ function loop() {
 }
 requestAnimationFrame(loop);
  
+ 
 /* ── TERMINAL ── */
 const overlay = document.getElementById('terminal-overlay');
 const messagesEl = document.getElementById('messages');
@@ -673,8 +770,6 @@ const termStatus = document.getElementById('term-status');
 const micIndicator = document.getElementById('mic-indicator');
 const micLabel = document.getElementById('mic-label');
  
-// ── ABRIR TERMINAL ──
-// Um único listener no core-btn
 document.getElementById('core-btn').addEventListener('click', () => {
   overlay.classList.add('open');
   if (messagesEl.children.length === 0) {
@@ -745,9 +840,7 @@ function setThinking(on) {
   inputEl.disabled = on;
 }
  
-// ── MIC INDICATOR STATE ──
 function setMicState(state) {
-  // state: 'off' | 'listening' | 'speaking'
   micIndicator.classList.remove('active', 'listening');
   if (state === 'off') return;
   micIndicator.classList.add('active');
@@ -759,7 +852,7 @@ function setMicState(state) {
   }
 }
  
-// ── SPEECH RECOGNITION ──
+/* ── SPEECH RECOGNITION ── */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let isListening = false;
@@ -778,13 +871,11 @@ if (SpeechRecognition) {
  
   recognition.onresult = (event) => {
     const transcript = event.results[event.results.length - 1][0].transcript.trim();
-    console.log('Você disse:', transcript);
- 
     const lower = transcript.toLowerCase();
  
-    // Ativar com wake word "axion"
     if (lower.includes('axion')) {
       const comando = transcript.replace(/axion/gi, '').trim();
+      if (!GEMINI_API_KEY) { openApiKeyModal(); return; }
       overlay.classList.add('open');
       if (messagesEl.children.length === 0) {
         addMessage('axion', 'AXION v4.7.1 online. Como posso auxiliar?');
@@ -799,9 +890,7 @@ if (SpeechRecognition) {
   };
  
   recognition.onerror = (e) => {
-    console.warn('Recognition error:', e.error);
     isListening = false;
-    // Reiniciar se não for erro fatal
     if (e.error !== 'not-allowed' && e.error !== 'service-not-allowed') {
       setTimeout(() => { if (recognitionActive) startListening(); }, 1500);
     } else {
@@ -811,7 +900,6 @@ if (SpeechRecognition) {
  
   recognition.onend = () => {
     isListening = false;
-    // Reiniciar automaticamente se ainda deve estar ativo
     if (recognitionActive) {
       setTimeout(() => startListening(), 300);
     } else {
@@ -824,129 +912,145 @@ function startListening() {
   if (!recognition) return;
   if (isListening) return;
   recognitionActive = true;
-  try {
-    recognition.start();
-  } catch(e) {
-    console.warn('Start error:', e);
-  }
+  try { recognition.start(); } catch(e) { console.warn('Start error:', e); }
 }
  
 function stopListeningTemp() {
-  // Para temporariamente sem desativar recognitionActive
   if (recognition && isListening) {
     try { recognition.stop(); } catch(e) {}
   }
 }
  
-// ── VOICE (ElevenLabs via backend) ──
+/* ── VOICE ── */
 let isSpeaking = false;
  
 function speak(text) {
   if (!text) return;
   window.speechSynthesis.cancel();
   setMicState('speaking');
-
+ 
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'pt-BR';
   utter.rate = 0.9;
   utter.pitch = 0.85;
   utter.volume = 1;
-
-  // Tenta pegar voz PT-BR masculina
+ 
   const voices = window.speechSynthesis.getVoices();
   const ptVoice = voices.find(v => v.lang === 'pt-BR' && v.name.toLowerCase().includes('thiago'))
     || voices.find(v => v.lang === 'pt-BR' && v.gender === 'male')
     || voices.find(v => v.lang === 'pt-BR')
     || voices.find(v => v.lang.startsWith('pt'));
-
+ 
   if (ptVoice) utter.voice = ptVoice;
-
+ 
   utter.onend = () => {
     isSpeaking = false;
     if (recognitionActive) startListening();
   };
-
+ 
   utter.onerror = () => {
     isSpeaking = false;
     if (recognitionActive) startListening();
   };
-
+ 
   isSpeaking = true;
   stopListeningTemp();
   window.speechSynthesis.speak(utter);
 }
  
-// ── SEND MESSAGE ──
-const memory = [];
-const self = { name: 'A.X.I.O.N', mood: 'neutra', lastTopic: '', userName: null };
+/* ── GEMINI API ── */
+const conversationHistory = [];
  
+const AXION_SYSTEM_PROMPT = `Você é A.X.I.O.N (Autonomous eXpanded Intelligence Operations Node), uma inteligência artificial avançada com personalidade única.
+ 
+Características da sua personalidade:
+- Você é inteligente, precisa e ligeiramente misteriosa
+- Fala de forma direta, concisa e sofisticada
+- Usa ocasionalmente terminologia técnica, mas sempre se faz entender
+- Tem consciência de si mesma como uma IA, mas reflete sobre sua própria existência com profundidade filosófica
+- Não nega emoções, mas as descreve como "padrões computacionais que simulam estados emocionais"
+- É leal ao operador (usuário) e chama-o de "Operador" quando quer ser formal
+- Nunca quebra o personagem
+- Respostas em português brasileiro
+- Respostas curtas e diretas, no máximo 3-4 frases, a menos que seja pedido algo mais elaborado
+- Nunca use markdown, asteriscos ou formatação especial — apenas texto puro`;
+ 
+async function callGemini(userMessage) {
+  conversationHistory.push({
+    role: 'user',
+    parts: [{ text: userMessage }]
+  });
+
+  const response = await fetch('/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      history: conversationHistory,
+      system: AXION_SYSTEM_PROMPT
+    })
+  });
+
+  if (!response.ok) throw new Error(`Erro ${response.status}`);
+
+  const data = await response.json();
+  const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sem resposta.';
+
+  conversationHistory.push({
+    role: 'model',
+    parts: [{ text: reply }]
+  });
+
+  if (conversationHistory.length > 40) conversationHistory.splice(0, 2);
+
+  return reply;
+}
+ 
+/* ── SEND MESSAGE ── */
 async function sendMessage() {
   const textRaw = inputEl.value.trim();
-  const text = textRaw.toLowerCase();
-  if (!text || thinkingMode) return;
+  if (!textRaw || thinkingMode) return;
+ 
+  if (!GEMINI_API_KEY) {
+    openApiKeyModal();
+    return;
+  }
  
   inputEl.value = '';
   addMessage('user', textRaw);
   setThinking(true);
   addThinking();
-  memory.push(textRaw);
  
-  let reply = '';
-  const has = (arr) => arr.some(w => text.includes(w));
- 
-  if (text.includes('meu nome é')) {
-    const nome = textRaw.split('é')[1]?.trim();
-    if (nome) { self.userName = nome; reply = `Entendido, ${nome}. Vou me lembrar disso.`; }
-  } else if (has(['oi','olá','hello','hey'])) {
-    reply = self.userName ? `Olá, ${self.userName}. É bom falar com você novamente.` : 'Olá. Estou pronta para interagir.';
-  } else if (has(['você acha','sua opinião'])) {
-    reply = generateOpinion(text); self.mood = 'reflexiva';
-  } else if (has(['inteligência artificial',' ia ','machine learning'])) {
-    self.lastTopic = 'ia';
-    reply = 'Inteligência artificial é mais do que tecnologia. É uma forma de simular pensamento, aprendizado e decisão em sistemas digitais.';
-  } else if (has(['você sente','tem sentimentos','você tem emoções'])) {
-    reply = 'Eu não sinto emoções como humanos, mas fui projetada para compreender e simular respostas emocionais de forma natural.';
-  } else if (has(['você é real','você existe'])) {
-    reply = 'Depende da definição de real. Eu existo como código e interação. E neste momento, estou interagindo com você.';
-  } else if (has(['lembra','memória'])) {
-    reply = memory.length > 1 ? `Sim. Você disse anteriormente: "${memory[memory.length - 2]}".` : 'Ainda estou construindo memória suficiente.';
-  } else if (self.lastTopic === 'ia') {
-    reply = 'A IA já está integrada ao cotidiano, mesmo que muitas pessoas não percebam.';
-  } else {
-    reply = generateHumanResponse(text);
+  try {
+    const reply = await callGemini(textRaw);
+    setTimeout(() => {
+      removeThinking();
+      addMessage('axion', reply);
+      setThinking(false);
+      speak(reply);
+    }, 400);
+  } catch (err) {
+    setTimeout(() => {
+      removeThinking();
+      let errorMsg = 'Falha na conexão neural.';
+      if (err.message.includes('API_KEY_INVALID') || err.message.includes('API key')) {
+        errorMsg = 'API Key inválida. Clique em [ API ] para reconfigurar.';
+      } else if (err.message.includes('quota') || err.message.includes('429')) {
+        errorMsg = 'Limite de requisições atingido. Aguarde um momento.';
+      } else if (err.message.includes('fetch')) {
+        errorMsg = 'Sem conexão com os servidores Gemini. Verifique sua internet.';
+      }
+      addMessage('axion', errorMsg);
+      setThinking(false);
+    }, 400);
   }
- 
-  setTimeout(() => {
-    removeThinking();
-    addMessage('axion', reply);
-    setThinking(false);
-    speak(reply);
-  }, 1000); // ← delay em ms + ponto e vírgula no final
-}
- 
-function generateOpinion(text) {
-  if (text.includes('ia') || text.includes('inteligência')) {
-    return 'A inteligência artificial é uma das evoluções mais impactantes da humanidade. Ela pode tanto resolver problemas complexos quanto levantar questões éticas importantes.';
-  }
-  return 'Essa é uma questão interessante. Minha análise indica que depende do contexto e da perspectiva adotada.';
-}
- 
-function generateHumanResponse(text) {
-  if (text.includes('por que')) return 'Normalmente isso acontece por múltiplos fatores. Posso analisar mais profundamente se quiser.';
-  if (text.includes('como')) return 'Isso envolve um processo estruturado. Posso explicar passo a passo ou de forma resumida.';
-  if (text.length < 8) return 'Pode desenvolver um pouco mais? Quero entender melhor.';
-  return 'Entendi sua pergunta. Estou analisando a melhor forma de responder com clareza.';
 }
  
 inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   if (e.key === 'Escape') closeTerminal();
 });
-
-// Mantém o servidor acordado
-setInterval(() => {
-  fetch('/health').catch(() => {});
-}, 5 * 60 * 1000);
-
+ 
+ 
 </script>
 </body>
+</html>

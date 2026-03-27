@@ -11,6 +11,36 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
  
 // Rota de health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// ── ROTA GEMINI ──
+app.post('/chat', async (req, res) => {
+  const { history, system } = req.body;
+  if (!history) return res.status(400).json({ error: 'Histórico obrigatório' });
+
+  const GEMINI_KEY = process.env.GEMINI_KEY;
+  if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_KEY não configurada' });
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: history,
+          generationConfig: { temperature: 0.85, maxOutputTokens: 300 }
+        })
+      }
+    );
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Gemini error:', err);
+    res.status(500).json({ error: 'Erro interno', detail: err.message });
+  }
+});
  
 // Rota de voz — proxy para Unreal Speech
 app.post('/speak', async (req, res) => {
@@ -18,10 +48,7 @@ app.post('/speak', async (req, res) => {
   if (!text) return res.status(400).json({ error: 'Texto obrigatório' });
  
   const UNREAL_API_KEY = process.env.UNREAL_API_KEY;
- 
-  if (!UNREAL_API_KEY) {
-    return res.status(500).json({ error: 'UNREAL_API_KEY não configurada' });
-  }
+  if (!UNREAL_API_KEY) return res.status(500).json({ error: 'UNREAL_API_KEY não configurada' });
  
   try {
     const response = await fetch('https://api.v7.unrealspeech.com/stream', {
@@ -65,3 +92,11 @@ app.get('*', (req, res) => {
  
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`AXION SERVER ONLINE 🚀 porta ${PORT}`));
+```
+
+---
+
+No `.env` adiciona a linha:
+```
+UNREAL_API_KEY=sua_chave_unreal
+GEMINI_KEY=sua_chave_gemini
