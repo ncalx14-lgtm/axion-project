@@ -92,11 +92,3 @@ app.get('*', (req, res) => {
  
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`AXION SERVER ONLINE 🚀 porta ${PORT}`));
-```
-
----
-
-No `.env` adiciona a linha:
-```
-UNREAL_API_KEY=sua_chave_unreal
-GEMINI_KEY=sua_chave_gemini
