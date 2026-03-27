@@ -9,7 +9,7 @@ app.use(express.json());
 
 // usa variável de ambiente (seguro)
 const ELEVEN_API_KEY = process.env.ELEVEN_API_KEY;
-const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+const VOICE_ID = process.env.VOICE_ID;
 
 // teste rápido
 app.get("/", (req, res) => {
