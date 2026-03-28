@@ -17,6 +17,8 @@ app.post('/chat', async (req, res) => {
   if (!history) return res.status(400).json({ error: 'Histórico obrigatório' });
 
   const GEMINI_KEY = process.env.GEMINI_KEY;
+  console.log('GEMINI_KEY existe?', !!GEMINI_KEY); // ← aqui
+  console.log('History length:', history?.length); // ← e aqui
   if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_KEY não configurada' });
 
   try {
@@ -40,6 +42,7 @@ app.post('/chat', async (req, res) => {
     res.status(500).json({ error: 'Erro interno', detail: err.message });
   }
 });
+
  
 // Rota de voz — proxy para Unreal Speech
 app.post('/speak', async (req, res) => {
