@@ -8,7 +8,6 @@ app.use(express.json());
  
 // Serve o frontend
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
- 
 // Rota de health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
