@@ -43,6 +43,7 @@ app.post('/chat', async (req, res) => {
   }
 });
 
+
  
 // Rota de voz — proxy para Unreal Speech
 app.post('/speak', async (req, res) => {
