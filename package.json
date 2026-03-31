@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/ncalx14-lgtm/axion-project#readme",
   "dependencies": {
+    "axios": "^1.14.0",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2"
